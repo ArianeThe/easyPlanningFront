@@ -45,6 +45,8 @@ const Calendar = () => {
                 alert("Impossible de réserver ce créneau.");
             }
         }
+        console.log("✅ Événements reçus dans `Calendar.jsx` :", events);
+
     };
 
     return (
