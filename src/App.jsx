@@ -1,33 +1,84 @@
-import React, { useState } from "react";
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { logout } from "./redux/userReducer";  // Import action déconnexion
 import Login from "./pages/Login";
+import Register from "./pages/Register";
+import UserDashboard from "./pages/UserDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import Calendar from "./components/Calendar";
+import "./App.css";
 
 const App = () => {
-  const [userRole, setUserRole] = useState(localStorage.getItem("role") || null);
+    const dispatch = useDispatch();
+    const { isAuthenticated, role } = useSelector((state) => state.user);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token"); //  Supprime le token JWT
-    localStorage.removeItem("role"); //  Supprime le rôle
-    setUserRole(null); //  Réinitialise l’état
+    const handleLogout = () => {
+      dispatch(logout());  // Supprimer l'état Redux
+      localStorage.removeItem("token");  // Supprimer le token
+      localStorage.removeItem("role");   // Supprimer le rôle
+      localStorage.removeItem("userInfo");
+      window.location.href = "/login";   // Redirection forcée vers la page de connexion
   };
 
-  return (
-    <div className="App">
-      {!userRole ? (
-        <Login setUserRole={setUserRole} />
-      ) : (
-        <div>
-          <h1>Bienvenue {userRole === "admin" ? "Administrateur" : "Utilisateur"}</h1>
-          <button onClick={handleLogout}>Déconnexion</button> {/*  Ajout du bouton */}
-          {userRole === "admin" ? (
-            <button>Gérer les créneaux</button>
-          ) : (
-            <Calendar />
-          )}
-        </div>
-      )}
-    </div>
-  );
+    // Composant pour protéger les routes admin
+    const ProtectedAdminRoute = ({ children }) => {
+        return isAuthenticated && role === "admin" ? children : <Navigate to="/login" />;
+    };
+
+    // Composant pour protéger les routes utilisateur
+    const ProtectedUserRoute = ({ children }) => {
+        return isAuthenticated && role === "user" ? children : <Navigate to="/login" />;
+    };
+
+    return (
+        <Router>
+            <div className="app">
+                <Routes>
+                    <Route
+                        path="/"
+                        element={
+                            isAuthenticated ? (
+                                role === "admin" ? (
+                                    <Navigate to="/admin" />
+                                ) : (
+                                    <Navigate to="/user" />
+                                )
+                            ) : (
+                                <Navigate to="/login" />
+                            )
+                        }
+                    />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route
+                        path="/admin"
+                        element={
+                            <ProtectedAdminRoute>
+                                <AdminDashboard />
+                            </ProtectedAdminRoute>
+                        }
+                    />
+                    <Route
+                        path="/user"
+                        element={
+                            <ProtectedUserRoute>
+                                <UserDashboard />
+                            </ProtectedUserRoute>
+                        }
+                    />
+                    <Route path="/calendar" element={
+                        <ProtectedUserRoute>
+                            <div>
+                                <button onClick={handleLogout}>Déconnexion</button>
+                                <Calendar />
+                            </div>
+                        </ProtectedUserRoute>
+                    } />
+                </Routes>
+            </div>
+        </Router>
+    );
 };
 
 export default App;

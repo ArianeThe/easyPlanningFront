@@ -1,46 +1,61 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";  // Import Redux
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import axios from "axios";
+import { fetchAppointments, setEvents } from "../redux/calendarReducer";  // Import des actions Redux
 
 const Calendar = () => {
-  const [events, setEvents] = useState([]);
+    const dispatch = useDispatch();
+    const events = useSelector((state) => state.calendar.events);  //  Accès aux événements via Redux
+    const userRole = useSelector((state) => state.user.role);  //  Accès au rôle via Redux
+    const userId = useSelector((state) => state.user.userInfo?.id);  //  Accès à l’ID utilisateur via Redux
 
-  // Récupérer les rendez-vous depuis l’API backend
-useEffect(() => {
-  const token = localStorage.getItem("token"); // Récupérer le token JWT
+    // Récupérer les rendez-vous depuis l’API via Redux
+    useEffect(() => {
+        dispatch(fetchAppointments());  //  Charge les rendez-vous globalement
+    }, [dispatch]);
 
-  console.log("Token récupéré :", token); // Vérifier la présence du token
+    // Réserver un créneau libre
+    const handleSelect = async (info) => {
+        if (userRole !== "admin") {
+            try {
+                await axios.post("http://localhost:5000/book-appointment", { 
+                    userId, 
+                    start: info.startStr, 
+                    end: info.endStr 
+                }, {
+                    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+                });
 
+                alert(`Créneau réservé pour ${info.startStr} !`);
 
-    if (!token) {
-    console.error("Erreur : Aucun token trouvé !");
-    return; // Arrêter la requête si pas de token
-  }
+                //  Mettre à jour Redux après réservation
+                dispatch(setEvents([...events, {
+                    title: "Votre RDV",
+                    start: info.startStr,
+                    end: info.endStr,
+                    userId: userId,
+                    color: "blue",
+                }]));
+            } catch (error) {
+                console.error("Erreur de réservation :", error);
+                alert("Impossible de réserver ce créneau.");
+            }
+        }
+    };
 
-  axios.get("http://localhost:5000/appointments", {
-    headers: { Authorization: `Bearer ${token}` }  //  Ajouter le token JWT
-  })
-  .then(response => {
-    const formattedEvents = response.data.map(event => ({
-      title: event.title,
-      start: event.start,
-      end: event.end,
-    }));
-    setEvents(formattedEvents);
-  })
-  .catch(error => console.error("Erreur :", error));
-}, []);
-
-  return (
-    <FullCalendar
-      plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-      initialView="timeGridWeek" // Vue en semaine comme Doctolib
-      events={events} // Affichage des rendez-vous
-    />
-  );
+    return (
+        <FullCalendar
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            initialView="timeGridWeek"
+            events={events}
+            selectable={true}
+            select={handleSelect}
+        />
+    );
 };
 
 export default Calendar;
