@@ -11,63 +11,60 @@ import frLocale from '@fullcalendar/core/locales/fr';
 import '../styles/AdminDashboard.css';
 
 const AdminDashboard = () => {
-    const [slots, setSlots] = useState([]);
     const [appointments, setAppointments] = useState([]);
     const [users, setUsers] = useState([]);
-    const [showSlotModal, setShowSlotModal] = useState(false);
     const [showUserModal, setShowUserModal] = useState(false);
-    const [selectedSlot, setSelectedSlot] = useState(null);
     const [selectedUser, setSelectedUser] = useState(null);
-    const [slotDuration, setSlotDuration] = useState(45);
-    const [slotStartTime, setSlotStartTime] = useState('');
-    const [slotEndTime, setSlotEndTime] = useState('');
-    const [slotDate, setSlotDate] = useState('');
-    const [showDocumentModal, setShowDocumentModal] = useState(false);
     const navigate = useNavigate();
     const dispatch = useDispatch();
 
-    useEffect(() => {
-        fetchSlots();
-        fetchAppointments();
-        fetchUsers();
-    }, []);
-
-    const fetchSlots = async () => {
-        try {
-            const response = await axios.get('http://localhost:5000/slots', {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-            });
-            setSlots(response.data);
-        } catch (error) {
-            console.error('Erreur lors de la récupération des créneaux:', error);
-        }
-    };
-
     const fetchAppointments = async () => {
         try {
-            const response = await axios.get('http://localhost:5000/appointments', {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            const token = localStorage.getItem('token');
+            const response = await axios.get('http://localhost:5000/admin/appointments', {
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             });
             console.log("Rendez-vous reçus:", response.data);
-            setAppointments(response.data);
+            setAppointments(response.data.appointments || []);
         } catch (error) {
             console.error('Erreur lors de la récupération des rendez-vous:', error);
+            if (error.response?.status === 401) {
+                navigate('/login');
+            }
         }
     };
 
-   const fetchUsers = async () => {
-    try {
-        const response = await axios.get("http://localhost:5000/admin/users", {
-            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
+    const fetchUsers = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get('http://localhost:5000/admin/users', {
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            console.log("Utilisateurs reçus:", response.data);
+            setUsers(response.data.users || []);
+        } catch (error) {
+            console.error('Erreur lors de la récupération des utilisateurs:', error);
+            if (error.response?.status === 401) {
+                navigate('/login');
+            }
+        }
+    };
 
-        console.log("✅ Utilisateurs reçus :", response.data.users);
-        setUsers(response.data.users);
-    } catch (error) {
-        console.error("🚨 Erreur lors de la récupération des utilisateurs :", error);
-    }
-};
-
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+        fetchAppointments();
+        fetchUsers();
+    }, [navigate]);
 
     const handleLogout = () => {
         dispatch(logout());
@@ -76,51 +73,57 @@ const AdminDashboard = () => {
         navigate('/login');
     };
 
-    const handleEventClick = async (info) => {
-        const eventId = info.event.id;
-        if (eventId.startsWith('apt-')) {
-            const appointmentId = parseInt(eventId.split('-')[1]);
-            const appointment = appointments.find(a => a.id === appointmentId);
-            if (appointment) {
-                const user = users.find(u => u.id === appointment.user_id);
-                if (user) {
-                    setSelectedUser(user);
-                    setShowUserModal(true);
-                }
+   const handleEventClick = async (info) => {
+    const eventId = info.event.id;
+    console.log("Événement cliqué, ID :", eventId);
+
+    if (eventId.startsWith('apt-')) {
+        const appointmentId = parseInt(eventId.split('-')[1]);
+        const appointment = appointments.find(a => a.id === appointmentId);
+        
+        console.log("Détails du rendez-vous :", appointment);
+
+        if (appointment) {
+            const user = users.find(u => u.user === appointment.user); // ⚡ Adapter la recherche d'utilisateur
+            console.log("Utilisateur trouvé :", user);
+
+            if (user) {
+                setSelectedUser(user);
+                setShowUserModal(true);
+            }
+        }
+    }
+};
+
+
+    const handleUserSelect = (event) => {
+        const userId = parseInt(event.target.value);
+        if (userId) {
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                setSelectedUser(user);
+                setShowUserModal(true);
             }
         }
     };
 
-        const handleUserClick = (user) => {
-        console.log("Utilisateur sélectionné :", user);
-        setSelectedUser(user);
-        setShowUserModal(true);
-    };
 
-        const handleDocumentShare = (user) => {
-        console.log("Partage de document avec :", user);
-        setSelectedUser(user);
-        setShowDocumentModal(true);
-    };
+        console.log("Liste des rendez-vous :", appointments);
+
+    const events = appointments.map((apt) => ({
+    id: `apt-${apt.id}`,
+    title: `${apt.title} - ${apt.user}`, // Nom correctement récupéré
+    start: new Date(apt.start).toISOString(),
+    end: new Date(apt.end).toISOString(),
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+    extendedProps: { type: 'appointment' }
+}));
+
+    console.log("Événements formatés pour affichage :", events);
 
 
-
-    const events = [
-        ...appointments.map(apt => {
-            console.log("Traitement du rendez-vous:", apt);
-            return {
-                id: `apt-${apt.id}`,
-                title: `${apt.title} - ${apt.first_name} ${apt.last_name}`,
-                start: new Date(apt.start_time).toISOString(),
-                end: new Date(apt.end_time).toISOString(),
-                backgroundColor: '#4CAF50',
-                borderColor: '#4CAF50',
-                extendedProps: { type: 'appointment' }
-            };
-        })
-    ];
-
-    console.log("Événements du calendrier:", events);
+    
 
     return (
         <div className="admin-dashboard">
@@ -152,38 +155,20 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="users-section">
-    <h2>Liste des utilisateurs</h2>
-    {users.length === 0 ? (
-        <p>Aucun utilisateur enregistré</p>
-    ) : (
-        <div className="users-list">
-            {users.map(user => (
-                <div key={user.id} className="user-card">
-                    <div className="user-info">
-                        <h3>{user.first_name} {user.last_name}</h3>
-                        <p>Email: {user.email}</p>
-                        <p>Téléphone: {user.phone || 'Non renseigné'}</p>
-                    </div>
-                    
-                    <button 
-                        className="view-profile-button"
-                        onClick={() => handleUserClick(user)}
+                    <h2>Liste des utilisateurs</h2>
+                    <select 
+                        className="user-select"
+                        onChange={handleUserSelect}
+                        defaultValue=""
                     >
-                        Voir le profil
-                    </button>
-
-                    <button 
-                        className="share-document-button"
-                        onClick={() => handleDocumentShare(user)}
-                    >
-                        Partager un document
-                    </button>
+                        <option value="" disabled>Sélectionner un utilisateur</option>
+                        {Array.isArray(users) && users.map(user => (
+                            <option key={user.id} value={user.id}>
+                                {user.first_name} {user.last_name}
+                            </option>
+                        ))}
+                    </select>
                 </div>
-            ))}
-        </div>
-    )}
-</div>
-
             </div>
 
             {showUserModal && selectedUser && (

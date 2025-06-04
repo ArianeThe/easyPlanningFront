@@ -38,7 +38,13 @@ const calendarSlice = createSlice({
             })
             .addCase(fetchAppointments.fulfilled, (state, action) => {
                 state.status = "succeeded";
-                state.events = action.payload;
+                state.events = action.payload.map(apt => ({
+                    id: apt.id.toString(), // ✅ Convertir ID en string pour éviter les erreurs
+                    title: apt.title,
+                    start: new Date(apt.start_time).toISOString(), // ✅ Format ISO 8601
+                    end: new Date(apt.end_time).toISOString()
+        }));
+                    console.log("✅ Événements stockés dans le reducer :", state.events);
             })
             .addCase(fetchAppointments.rejected, (state, action) => {
                 state.status = "failed";
