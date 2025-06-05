@@ -7,6 +7,8 @@ import Register from "./pages/Register";
 import UserDashboard from "./pages/UserDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import Calendar from "./components/Calendar";
+import AppointmentTypes from "./pages/AppointmentsTypes";
+import UserProfile from "./pages/UserProfile";
 import "./App.css";
 
 const App = () => {
@@ -59,6 +61,26 @@ const App = () => {
                             </ProtectedAdminRoute>
                         }
                     />
+
+                    <Route 
+                        path="/admin/appointment-types" 
+                        element={
+                            <ProtectedAdminRoute>
+                                <AppointmentTypes />
+                            </ProtectedAdminRoute>
+                        } 
+                   />
+
+                   <Route 
+                       path="/admin/user/:userId" 
+                      element={
+                          <ProtectedAdminRoute>
+                              <UserProfile />
+                          </ProtectedAdminRoute>
+                      } 
+                  />
+
+
                     <Route
                         path="/user"
                         element={
@@ -75,6 +97,8 @@ const App = () => {
                             </div>
                         </ProtectedUserRoute>
                     } />
+
+
                 </Routes>
             </div>
         </Router>

@@ -75,38 +75,38 @@ const AdminDashboard = () => {
 
    const handleEventClick = async (info) => {
     const eventId = info.event.id;
-    console.log("Événement cliqué, ID :", eventId);
 
     if (eventId.startsWith('apt-')) {
         const appointmentId = parseInt(eventId.split('-')[1]);
         const appointment = appointments.find(a => a.id === appointmentId);
         
-        console.log("Détails du rendez-vous :", appointment);
-
         if (appointment) {
-             console.log("Liste des utilisateurs :", users); // Vérifie ce que contient users
             const user = users.find(u => `${u.first_name} ${u.last_name}` === appointment.user); 
-            console.log("Utilisateur trouvé :", user);
 
             if (user) {
-                setSelectedUser(user);
-                setShowUserModal(true);
+                navigate(`/admin/user/${user.id}`); // Redirige vers la page de profil
             }
         }
     }
 };
 
 
-    const handleUserSelect = (event) => {
-        const userId = parseInt(event.target.value);
-        if (userId) {
-            const user = users.find(u => u.id === userId);
-            if (user) {
-                setSelectedUser(user);
-                setShowUserModal(true);
-            }
+const handleUserSelect = (event) => {
+
+    console.log("🔍 Valeur sélectionnée :", event.target.value);
+
+    const userId = parseInt(event.target.value);
+    console.log("🔍 ID après conversion :", userId);
+    
+    if (userId) {
+        const user = users.find(u => u.id === userId);
+        if (user) {
+            setSelectedUser(user);
+            setShowUserModal(true);
+            navigate(`/admin/user/${userId}`); //Redirection vers UserProfile
         }
-    };
+    }
+};
 
 
         console.log("Liste des rendez-vous :", appointments);
@@ -148,7 +148,7 @@ const AdminDashboard = () => {
                         events={events}
                         eventClick={handleEventClick}
                         height="auto"
-                        slotMinTime="08:00:00"
+                        slotMinTime="09:45:00"
                         slotMaxTime="20:00:00"
                         allDaySlot={false}
                         slotDuration="00:45:00"
@@ -169,6 +169,15 @@ const AdminDashboard = () => {
                             </option>
                         ))}
                     </select>
+
+                    <div>
+            <h2>Motifs de consultation</h2>
+            <button onClick={() => navigate("/admin/appointment-types")}>
+                Mettre à jour les motifs
+            </button>
+        </div>
+
+
                 </div>
             </div>
 

@@ -14,6 +14,9 @@ const UserDashboard = () => {
     const [appointmentTitle, setAppointmentTitle] = useState('');
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
     const [sharedDocuments, setSharedDocuments] = useState([]);
+    const [selectedType, setSelectedType] = useState("");
+    const [appointmentTypes, setAppointmentTypes] = useState(["Première consultation adulte", "Suivi psychologique", "Première consultation adolescent", "Suivi psychologique adolescent", "Consultation de couple", "Première consultation enfant", "Suivi psychologique enfant"]);
+
     const [profileData, setProfileData] = useState({
         first_name: '',
         last_name: '',
@@ -113,12 +116,7 @@ const UserDashboard = () => {
         }
     };
 
-   const handleAppointmentSubmit = async () => {
-    if (!appointmentTitle.trim()) {
-        alert("Veuillez saisir un titre pour le rendez-vous");
-        return;
-    }
-
+  const handleAppointmentSubmit = async () => {
     if (!selectedSlot || !selectedSlot.start_time) {
         alert("Aucun créneau sélectionné !");
         return;
@@ -132,15 +130,13 @@ const UserDashboard = () => {
         console.log("Tentative de création du rendez-vous:", {
             slot_id: selectedSlot.id,
             start_time: selectedSlot.start_time,
-            end_time: endTime.toISOString(), //  Ajout de `end_time`
-            title: appointmentTitle
+            end_time: endTime.toISOString() // ✅ Suppression de `title`
         });
 
         const response = await axios.post('http://localhost:5000/appointments', {
             slot_id: selectedSlot.id,
             start_time: selectedSlot.start_time,
-            end_time: endTime.toISOString(), //  Ajout du champ `end_time`
-            title: appointmentTitle
+            end_time: endTime.toISOString() // ✅ Envoi des données sans `title`
         }, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
@@ -151,7 +147,6 @@ const UserDashboard = () => {
             alert("Rendez-vous créé avec succès !");
             setShowSlotModal(false);
             setSelectedSlot(null);
-            setAppointmentTitle('');
             fetchSlots();
             fetchAppointments();
         }
@@ -310,25 +305,25 @@ const UserDashboard = () => {
 
                 <div className="appointments-section">
                     <h2>Mes rendez-vous</h2>
-                    {appointments.length === 0 ? (
-                        <p>Aucun rendez-vous prévu</p>
-                    ) : (
-                        <div className="appointments-list">
-                            {appointments.map(apt => (
-                                <div key={apt.id} className="appointment-card">
-                                    <h3>{apt.title}</h3>
-                                    <p>Date: {new Date(apt.start_time).toLocaleDateString()}</p>
-                                    <p>Heure: {new Date(apt.start_time).toLocaleTimeString()} - {new Date(apt.end_time).toLocaleTimeString()}</p>
-                                    <button
-                                        className="cancel-button"
-                                        onClick={() => handleCancelAppointment(apt.id)}
-                                    >
-                                        Annuler
-                                    </button>
-                                </div>
-                            ))}
+                    {appointments.map(apt => (
+                        <div key={apt.id} className="appointment-card">
+                            <h3>{apt.title}</h3>
+                            <p>Date: {new Date(apt.start_time).toLocaleDateString()}</p>
+                            <p>Heure: {new Date(apt.start_time).toLocaleTimeString()} - {new Date(apt.end_time).toLocaleTimeString()}</p>
+
+                            {apt.status === "cancelled" ? (
+                                <p className="cancelled-message" style={{ color: "red", fontWeight: "bold" }}>🛑 Annulé par le patient</p>
+                            ) : (
+                                <button
+                                    className="cancel-button"
+                                    onClick={() => handleCancelAppointment(apt.id)}
+                                >
+                                    Annuler
+                                </button>
+                            )}
                         </div>
-                    )}
+            ))}
+                        
                 </div>
 
                 <div className="documents-section">
@@ -357,13 +352,13 @@ const UserDashboard = () => {
                         <h2>Prendre un rendez-vous</h2>
                         <p>Date: {new Date(selectedSlot.start_time).toLocaleDateString('fr-FR')}</p>
                         <p>Heure: {new Date(selectedSlot.start_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
-                        <input
-                            type="text"
-                            placeholder="Titre du rendez-vous"
-                            value={appointmentTitle}
-                            onChange={(e) => setAppointmentTitle(e.target.value)}
-                            required
-                        />
+
+                        <select onChange={(e) => setSelectedType(e.target.value)}>
+                             {appointmentTypes.map((type, index) => (
+                                <option key={index} value={type}>{type}</option>
+                            ))}
+                        </select>
+
                         <div className="modal-buttons">
                             <button onClick={handleAppointmentSubmit}>Confirmer</button>
                             <button onClick={() => {
