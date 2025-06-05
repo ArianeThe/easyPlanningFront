@@ -84,7 +84,8 @@ const AdminDashboard = () => {
         console.log("Détails du rendez-vous :", appointment);
 
         if (appointment) {
-            const user = users.find(u => u.user === appointment.user); // ⚡ Adapter la recherche d'utilisateur
+             console.log("Liste des utilisateurs :", users); // Vérifie ce que contient users
+            const user = users.find(u => `${u.first_name} ${u.last_name}` === appointment.user); 
             console.log("Utilisateur trouvé :", user);
 
             if (user) {
