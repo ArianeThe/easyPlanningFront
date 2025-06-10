@@ -318,4 +318,50 @@
     width: 16px;
     height: 16px;
     border-radius: 4px;
+}
+
+.available-slots {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.slots-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 10px 0;
+    padding: 10px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+.slot-item {
+    padding: 8px 12px;
+    margin: 4px 0;
+    background: #e9ecef;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: #495057;
+}
+
+.load-more-button {
+    width: 100%;
+    padding: 10px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.load-more-button:hover {
+    background: #0056b3;
+}
+
+.load-more-button:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
 } 
