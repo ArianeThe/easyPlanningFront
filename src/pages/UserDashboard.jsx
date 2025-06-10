@@ -7,6 +7,16 @@ import '../styles/UserDashboard.css';
 
 const UserDashboard = () => {
     const [slots, setSlots] = useState([]);
+    const [currentSlots, setCurrentSlots] = useState([]);  
+useEffect(() => {
+    if (slots.length > 0) { 
+        setCurrentSlots(slots.slice(0, 8)); // Assure que `currentSlots` est bien mis à jour après `slots`
+        console.log("✅ currentSlots mis à jour :", slots.slice(0, 8));
+        }
+        }, [slots]); // Se déclenche chaque fois que `slots` est mis à jour
+
+
+    const [isLoading, setIsLoading] = useState(false);
     const [appointments, setAppointments] = useState([]);
     const [showSlotModal, setShowSlotModal] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
@@ -16,7 +26,6 @@ const UserDashboard = () => {
     const [sharedDocuments, setSharedDocuments] = useState([]);
     const [selectedType, setSelectedType] = useState("");
     const [appointmentTypes, setAppointmentTypes] = useState(["Première consultation adulte", "Suivi psychologique", "Première consultation adolescent", "Suivi psychologique adolescent", "Consultation de couple", "Première consultation enfant", "Suivi psychologique enfant"]);
-
     const [profileData, setProfileData] = useState({
         first_name: '',
         last_name: '',
@@ -29,35 +38,74 @@ const UserDashboard = () => {
     const dispatch = useDispatch();
     const userInfo = useSelector(state => state.user.userInfo);
 
-    useEffect(() => {
-        fetchSlots();
-        fetchAppointments();
-        if (userInfo) {
-            setNotificationsEnabled(userInfo.notifications_enabled);
-            setSharedDocuments(JSON.parse(userInfo.shared_documents || '[]'));
-            setProfileData({
-                first_name: userInfo.first_name || '',
-                last_name: userInfo.last_name || '',
-                email: userInfo.email || '',
-                phone: userInfo.phone || '',
-                address: userInfo.address || '',
-                birth_date: userInfo.birth_date ? new Date(userInfo.birth_date).toISOString().split('T')[0] : ''
-            });
-        }
-    }, [userInfo]);
+// 🔹 1️⃣ Récupération des créneaux (`slots`) et des rendez-vous au chargement initial
+            useEffect(() => {
+                fetchSlots(); // ✅ Charge les créneaux une seule fois au montage
+                fetchAppointments();
+            }, []); // ✅ Se déclenche une seule fois au montage du composant
 
+// 🔹 2️⃣ Mise à jour des infos utilisateur (`userInfo`) uniquement quand `userInfo` change
+            useEffect(() => {
+                if (userInfo) {
+                    setNotificationsEnabled(userInfo.notifications_enabled);
+                    setSharedDocuments(JSON.parse(userInfo.shared_documents || '[]'));
+                    setProfileData({
+                        first_name: userInfo.first_name || '',
+                        last_name: userInfo.last_name || '',
+                        email: userInfo.email || '',
+                        phone: userInfo.phone || '',
+                        address: userInfo.address || '',
+                        birth_date: userInfo.birth_date ? new Date(userInfo.birth_date).toISOString().split('T')[0] : ''
+                    });
+                }
+            }, [userInfo]); // ✅ Se déclenche uniquement quand `userInfo` change
+
+
+
+// Fonction pour récupérer les créneaux disponibles
     const fetchSlots = async () => {
         try {
             const response = await axios.get('http://localhost:5000/slots', {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             });
             console.log("Slots récupérés:", response.data);
-            setSlots(response.data);
+
+            setSlots(prevSlots => {
+                const newSlots = response.data.filter(
+                    newSlot => !prevSlots.some(existingSlot => existingSlot.id === newSlot.id)
+                );
+                return [...prevSlots, ...newSlots]; 
+            });
+
+            setCurrentSlots(response.data.slice(0, 8)); // Limite directement à 8 créneaux visibles
+
         } catch (error) {
             console.error('Erreur lors de la récupération des créneaux:', error);
         }
     };
 
+    const fetchMoreSlots = async () => {
+    if (isLoading) return; // ✅ Empêche un double appel
+    setIsLoading(true);
+    try {
+        const response = await axios.get(`http://localhost:5000/slots?offset=${slots.length}`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        });
+        const uniqueSlots = response.data.filter(
+            newSlot => !slots.some(existingSlot => existingSlot.id === newSlot.id)
+        );
+        setSlots(prevSlots => [...prevSlots, ...uniqueSlots]); // Ajoute uniquement les nouveaux créneaux
+    } catch (error) {
+        console.error("🚨 Erreur récupération des créneaux supplémentaires:", error);
+    } finally {
+        setIsLoading(false);
+    }
+};
+
+
+
+
+//fonction pour récupérer les rendez-vous de l'utilisateur
     const fetchAppointments = async () => {
         try {
             const response = await axios.get('http://localhost:5000/appointments', {
@@ -69,6 +117,8 @@ const UserDashboard = () => {
             console.error('Erreur lors de la récupération des rendez-vous:', error);
         }
     };
+
+
 
     const handleSlotSelect = (selectInfo) => {
         console.log("Sélection de créneau:", selectInfo);
@@ -116,6 +166,8 @@ const UserDashboard = () => {
         }
     };
 
+
+// Fonction pour soumettre un rendez-vous
   const handleAppointmentSubmit = async () => {
     if (!selectedSlot || !selectedSlot.start_time) {
         alert("Aucun créneau sélectionné !");
@@ -130,13 +182,13 @@ const UserDashboard = () => {
         console.log("Tentative de création du rendez-vous:", {
             slot_id: selectedSlot.id,
             start_time: selectedSlot.start_time,
-            end_time: endTime.toISOString() // ✅ Suppression de `title`
+            end_time: endTime.toISOString() //  Suppression de `title`
         });
 
         const response = await axios.post('http://localhost:5000/appointments', {
             slot_id: selectedSlot.id,
             start_time: selectedSlot.start_time,
-            end_time: endTime.toISOString() // ✅ Envoi des données sans `title`
+            end_time: endTime.toISOString() // Envoi des données sans `title`
         }, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
@@ -157,7 +209,7 @@ const UserDashboard = () => {
 };
 
 
-
+// Fonction pour annuler un rendez-vous
     const handleCancelAppointment = async (appointmentId) => {
         try {
             await axios.delete(`http://localhost:5000/appointments/${appointmentId}`, {
@@ -172,6 +224,8 @@ const UserDashboard = () => {
         }
     };
 
+
+// Fonction pour activer/désactiver les notifications
     const toggleNotifications = async () => {
         try {
             await axios.put('http://localhost:5000/users/notifications', {
@@ -185,6 +239,8 @@ const UserDashboard = () => {
         }
     };
 
+
+// Fonction pour mettre à jour le profil de l'utilisateur
     const handleProfileUpdate = async (e) => {
         e.preventDefault();
         try {
@@ -204,6 +260,8 @@ const UserDashboard = () => {
         }
     };
 
+
+// Fonction pour déconnecter l'utilisateur
     const handleLogout = () => {
         dispatch(logout());
         localStorage.removeItem('token');
@@ -238,16 +296,28 @@ const UserDashboard = () => {
     // Découpe les créneaux en pages
     const indexOfLastSlot = currentPage * slotsPerPage;
     const indexOfFirstSlot = indexOfLastSlot - slotsPerPage;
-    const currentSlots = slots.slice(indexOfFirstSlot, indexOfLastSlot);
+
+console.log("🔍 indexOfLastSlot :", indexOfLastSlot);
+console.log("🔍 slots.length :", slots.length);
 
     // Bouton "Plus de créneaux libres"
     const nextPage = () => {
-        if (indexOfLastSlot < slots.length) {
-            setCurrentPage(currentPage + 1);
-        }
-    };
+    console.log("🔍 currentSlots.length :", currentSlots.length);
+    console.log("🔍 slots.length :", slots.length);
+    console.log("🔍 Affichage du bouton ?", currentSlots.length < slots.length);
 
-    
+    // ✅ Vérifie qu'il reste bien des créneaux à afficher avant d'avancer
+    if (currentSlots.length < slots.length) {
+        const nextSlots = slots.slice(currentSlots.length, currentSlots.length + slotsPerPage);
+
+        setCurrentSlots(prevSlots => [...prevSlots, ...nextSlots]); // Ajoute les nouveaux créneaux visibles
+        setCurrentPage(prevPage => prevPage + 1); // Met à jour la page courante
+    }
+};
+
+
+    console.log("🔍 Clés utilisées :", slots.map(slot => `${slot.id}-${slot.start_time}`));
+
 
     return (
         <div className="user-dashboard">
@@ -277,18 +347,17 @@ const UserDashboard = () => {
                 <p>Aucun créneau disponible pour le moment</p>
             ) : (
                 <div className="slots-list">
-                    {currentSlots.map(slot => (
-                        <div key={slot.id} className="slot-card">
-                            <div className="slot-info">
-                                <h3>Date: {new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(slot.start_time))}</h3>
-
-                                <p>Heure: {new Date(slot.start_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
-                            </div>
+                    {slots.map(slot => (
+                         <div key={`${slot.id}-${slot.start_time}`} className="slot-card">
+                             <div className="slot-info">
+                                    <h3>Date: {new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(slot.start_time))}</h3>
+                                    <p>Heure: {new Date(slot.start_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
+                                </div>
                             <button 
-                                className="book-button"
-                                onClick={() => {
+                                 className="book-button"
+                                    onClick={() => {
                                     console.log("Créneau sélectionné:", slot);
-                                    setSelectedSlot(slot);
+                                   setSelectedSlot(slot);
                                     setShowSlotModal(true);
                                 }}
                             >
@@ -298,9 +367,10 @@ const UserDashboard = () => {
                     ))}
                 </div>
             )}
-            {indexOfLastSlot < slots.length && (
-                <button className="load-more" onClick={nextPage}>Plus de créneaux libres</button>
-            )}
+            {currentSlots.length < slots.length && (
+    <button className="load-more" onClick={nextPage}>Plus de créneaux libres</button>
+)}
+
         </div>
 
                 <div className="appointments-section">
