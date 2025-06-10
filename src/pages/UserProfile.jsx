@@ -37,22 +37,22 @@ const UserProfile = () => {
                     <h1>Profil de {user.first_name} {user.last_name}</h1>
                     <p>Téléphone : {user.phone}</p>
                     <h2>Historique des rendez-vous</h2>
-                    <ul>
-                        {appointments.map(apt => (
-    <div key={apt.id} className="appointment-card">
-        <h3>{apt.title}</h3>
-        <p>Date: {new Date(apt.start_time).toLocaleDateString()}</p>
-        <p>Heure: {new Date(apt.start_time).toLocaleTimeString()} - {new Date(apt.end_time).toLocaleTimeString()}</p>
+<ul>
+    {appointments.map(apt => (
+        <div key={apt.id} className="appointment-card">
+            <h3>{apt.title}</h3>
+            <p>Date: {new Date(apt.start_time).toLocaleDateString()}</p>
+            <p>Heure: {new Date(apt.start_time).toLocaleTimeString()} - {new Date(apt.end_time).toLocaleTimeString()}</p>
 
-        {apt.status === "cancelled" ? (
-            <p className="cancelled-message" style={{ color: "red", fontWeight: "bold" }}>🛑 Annulé par le patient</p>
-        ) : (
-            <p className="active-message" style={{ color: "green", fontWeight: "bold" }}>✅ Confirmé</p>
-        )}
-    </div>
-))}
+            {apt.status === "cancelled" ? (
+                <p className="cancelled-message" style={{ color: "red", fontWeight: "bold" }}>🛑 Annulé par le patient</p>
+            ) : (
+                <p className="active-message" style={{ color: "green", fontWeight: "bold" }}>✅ Confirmé</p>
+            )}
+        </div>
+    ))}
+</ul>
 
-                    </ul>
                 </>
             ) : (
                 <p>Chargement des données...</p>

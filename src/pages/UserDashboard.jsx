@@ -203,25 +203,51 @@ const fetchSlots = async () => {
 
 
 // Fonction pour annuler un rendez-vous
+
 const handleCancelAppointment = async (appointmentId) => {
     try {
-        await axios.delete(`http://localhost:5000/appointments/${appointmentId}`, {
+        const response = await axios.delete(`http://localhost:5000/appointments/${appointmentId}`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
 
         console.log("✅ Rendez-vous annulé :", appointmentId);
 
-        // ✅ Supprimer le rendez-vous du frontend
-        setAppointments(prev => prev.filter(app => app.id !== appointmentId));
+        // ✅ Mettre à jour le statut du rendez-vous dans l'interface
+        setAppointments(prev => prev.map(app => 
+            app.id === appointmentId ? { ...app, status: "cancelled" } : app
+        ));
 
-        // ✅ Libérer le créneau en le réaffichant dans `currentSlots`
-        fetchSlots(); // Recharge les créneaux disponibles
+        // ✅ Libérer le créneau dans `slots`
+        setSlots(prevSlots => [...prevSlots, { start_time: response.data.start_time, end_time: response.data.end_time }]);
+
+        fetchAppointments(); // ✅ Recharge les rendez-vous pour s’assurer que tout est bien mis à jour
+        fetchSlots(); // ✅ Recharge les créneaux disponibles
 
     } catch (error) {
         console.error("🚨 Erreur lors de l'annulation du rendez-vous :", error);
         alert("Erreur lors de l'annulation du rendez-vous. Veuillez réessayer.");
     }
 };
+
+//const handleCancelAppointment = async (appointmentId) => {
+ //   try {
+ //       await axios.delete(`http://localhost:5000/appointments/${appointmentId}`, {
+ //           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+ //       });
+//
+ //       console.log(" Rendez-vous annulé :", appointmentId);
+//
+ //       // Supprimer le rendez-vous du frontend
+ //       setAppointments(prev => prev.filter(app => app.id !== appointmentId));
+//
+ //       // Libérer le créneau en le réaffichant dans `currentSlots`
+ //       fetchSlots(); // Recharge les créneaux disponibles
+//
+ //   } catch (error) {
+ //       console.error("🚨 Erreur lors de l'annulation du rendez-vous :", error);
+ //       alert("Erreur lors de l'annulation du rendez-vous. Veuillez réessayer.");
+ //   }
+//};
 
 
 
@@ -359,27 +385,24 @@ const handleCancelAppointment = async (appointmentId) => {
                 </div>
 
                 <div className="appointments-section">
-                    <h2>Mes rendez-vous</h2>
-                    {appointments.map(apt => (
-                        <div key={apt.id} className="appointment-card">
-                            <h3>{apt.title}</h3>
-                            <p>Date: {new Date(apt.start_time).toLocaleDateString()}</p>
-                            <p>Heure: {new Date(apt.start_time).toLocaleTimeString()} - {new Date(apt.end_time).toLocaleTimeString()}</p>
+    <h2>Mes rendez-vous</h2>
+    {appointments.map(apt => (
+        <div key={apt.id} className="appointment-card">
+            <h3>{apt.title}</h3>
+            <p>Date: {new Date(apt.start_time).toLocaleDateString()}</p>
+            <p>Heure: {new Date(apt.start_time).toLocaleTimeString()} - {new Date(apt.end_time).toLocaleTimeString()}</p>
 
-                            {apt.status === "cancelled" ? (
-                                <p className="cancelled-message" style={{ color: "red", fontWeight: "bold" }}>🛑 Annulé par le patient</p>
-                            ) : (
-                                <button
-                                    className="cancel-button"
-                                    onClick={() => handleCancelAppointment(apt.id)}
-                                >
-                                    Annuler
-                                </button>
-                            )}
-                        </div>
-            ))}
-                        
-                </div>
+            {apt.status === "cancelled" ? (
+                <p className="cancelled-message" style={{ color: "red", fontWeight: "bold" }}>🛑 Annulé par le patient</p>
+            ) : (
+                <button className="cancel-button" onClick={() => handleCancelAppointment(apt.id)}>
+                    Annuler
+                </button>
+            )}
+        </div>
+    ))}
+</div>
+
 
                 <div className="documents-section">
                     <h2>Documents partagés</h2>
