@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../redux/userReducer';
 import Calendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -9,15 +9,19 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import frLocale from '@fullcalendar/core/locales/fr';
 import '../styles/AdminDashboard.css';
+import CalendarComponent from '../components/Calendar';
 
 const AdminDashboard = () => {
-    const [appointments, setAppointments] = useState([]);
+    // const [appointments, setAppointments] = useState([]);  // Commenté car géré par Redux
     const [users, setUsers] = useState([]);
     const [showUserModal, setShowUserModal] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const navigate = useNavigate();
     const dispatch = useDispatch();
+    const events = useSelector((state) => state.calendar.events);  // Utilisation des événements depuis Redux
 
+    // Ancien fetchAppointments commenté car maintenant géré par le calendarReducer
+    /*
     const fetchAppointments = async () => {
         try {
             const token = localStorage.getItem('token');
@@ -36,6 +40,7 @@ const AdminDashboard = () => {
             }
         }
     };
+    */
 
     const fetchUsers = async () => {
         try {
@@ -62,7 +67,7 @@ const AdminDashboard = () => {
             navigate('/login');
             return;
         }
-        fetchAppointments();
+        // fetchAppointments();  // Commenté car géré par le calendarReducer
         fetchUsers();
     }, [navigate]);
 
@@ -73,58 +78,42 @@ const AdminDashboard = () => {
         navigate('/login');
     };
 
-   const handleEventClick = async (info) => {
-    const eventId = info.event.id;
+    const handleEventClick = async (info) => {
+        const userId = info.event.extendedProps.userId;
+        if (userId) {
+            navigate(`/admin/user/${userId}`);
+        } else {
+            console.error("🚨 Erreur : Impossible de trouver l'utilisateur pour cet événement.");
+        }
+    };
 
-    if (eventId.startsWith('apt-')) {
-        const appointmentId = parseInt(eventId.split('-')[1]);
-        const appointment = appointments.find(a => a.id === appointmentId);
+    const handleUserSelect = (event) => {
+        console.log("🔍 Valeur sélectionnée :", event.target.value);
+        const userId = parseInt(event.target.value);
+        console.log("🔍 ID après conversion :", userId);
         
-        if (appointment) {
-            const user = users.find(u => `${u.first_name} ${u.last_name}` === appointment.user); 
-
+        if (userId) {
+            const user = users.find(u => u.id === userId);
             if (user) {
-                navigate(`/admin/user/${user.id}`); // Redirige vers la page de profil
+                setSelectedUser(user);
+                setShowUserModal(true);
+                navigate(`/admin/user/${userId}`);
             }
         }
-    }
-};
+    };
 
-
-const handleUserSelect = (event) => {
-
-    console.log("🔍 Valeur sélectionnée :", event.target.value);
-
-    const userId = parseInt(event.target.value);
-    console.log("🔍 ID après conversion :", userId);
-    
-    if (userId) {
-        const user = users.find(u => u.id === userId);
-        if (user) {
-            setSelectedUser(user);
-            setShowUserModal(true);
-            navigate(`/admin/user/${userId}`); //Redirection vers UserProfile
-        }
-    }
-};
-
-
-        console.log("Liste des rendez-vous :", appointments);
-
+    // Ancien code de transformation des rendez-vous en événements
+    /*
     const events = appointments.map((apt) => ({
-    id: `apt-${apt.id}`,
-    title: `${apt.title} - ${apt.user}`, // Nom correctement récupéré
-    start: new Date(apt.start).toISOString(),
-    end: new Date(apt.end).toISOString(),
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
-    extendedProps: { type: 'appointment' }
-}));
-
-    console.log("Événements formatés pour affichage :", events);
-
-
-    
+        id: `apt-${apt.id}`,
+        title: `${apt.title} - ${apt.user}`, 
+        start: new Date(apt.start).toISOString(),
+        end: new Date(apt.end).toISOString(),
+        backgroundColor: '#4CAF50',
+        borderColor: '#4CAF50',
+        extendedProps: { userId: apt.user_id }
+    }));
+    */
 
     return (
         <div className="admin-dashboard">
@@ -136,6 +125,7 @@ const handleUserSelect = (event) => {
             <div className="dashboard-content">
                 <div className="calendar-section">
                     <h2>Calendrier des rendez-vous</h2>
+                    {/* Ancien calendrier commenté
                     <Calendar
                         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                         initialView="timeGridWeek"
@@ -153,6 +143,9 @@ const handleUserSelect = (event) => {
                         allDaySlot={false}
                         slotDuration="00:45:00"
                     />
+                    */}
+                    {/* Nouveau composant Calendar */}
+                    <CalendarComponent />
                 </div>
 
                 <div className="users-section">
@@ -171,13 +164,11 @@ const handleUserSelect = (event) => {
                     </select>
 
                     <div>
-            <h2>Motifs de consultation</h2>
-            <button onClick={() => navigate("/admin/appointment-types")}>
-                Mettre à jour les motifs
-            </button>
-        </div>
-
-
+                        <h2>Motifs de consultation</h2>
+                        <button onClick={() => navigate("/admin/appointment-types")}>
+                            Mettre à jour les motifs
+                        </button>
+                    </div>
                 </div>
             </div>
 

@@ -17,7 +17,7 @@ const UserDashboard = () => {
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
     const [sharedDocuments, setSharedDocuments] = useState([]);
     const [selectedType, setSelectedType] = useState("");
-    const [appointmentTypes, setAppointmentTypes] = useState(["Première consultation adulte", "Suivi psychologique", "Première consultation adolescent", "Suivi psychologique adolescent", "Consultation de couple", "Première consultation enfant", "Suivi psychologique enfant"]);
+    const [appointmentTypes, setAppointmentTypes] = useState([]);
 
     const [profileData, setProfileData] = useState({
         first_name: '',
@@ -159,11 +159,30 @@ const fetchSlots = async () => {
         }
     };
 
+    //fonction pour stocker les motifs de rendez-vous
+    const fetchAppointmentTypes = async () => {
+    try {
+        const response = await axios.get("http://localhost:5000/appointment-types", {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+
+        console.log(" Types de rendez-vous récupérés :", response.data);
+        setAppointmentTypes(response.data.map(type => ({ id: type.id, name: type.name })));
+
+
+    } catch (error) {
+        console.error("🚨 Erreur lors de la récupération des types de rendez-vous :", error);
+    }
+};
+
+useEffect(() => {
+    fetchAppointmentTypes();
+}, []);
 
     // Fonction pour soumettre le rendez-vous
-  const handleAppointmentSubmit = async () => {
-    if (!selectedSlot || !selectedSlot.start_time) {
-        alert("Aucun créneau sélectionné !");
+ const handleAppointmentSubmit = async () => {
+    if (!selectedSlot || !selectedSlot.start_time || !selectedType) {
+        alert("Sélectionnez un créneau et un motif de rendez-vous !");
         return;
     }
 
@@ -171,22 +190,33 @@ const fetchSlots = async () => {
     const startTime = new Date(selectedSlot.start_time);
     const endTime = new Date(startTime.getTime() + 45 * 60000); // Ajout de 45 minutes
 
+    // Vérifier si selectedType est bien un ID et non un nom
+    const appointmentTypeId = Number(selectedType);
+
+    if (isNaN(appointmentTypeId)) {
+        console.error("❌ Erreur : appointment_type_id doit être un nombre !");
+        alert("❌ Erreur : appointment_type_id doit être un nombre valide !");
+        return;
+    }
+
     try {
-        console.log("Tentative de création du rendez-vous:", {
+        console.log("🚀 Tentative de création du rendez-vous avec :", {
             slot_id: selectedSlot.id,
             start_time: selectedSlot.start_time,
-            end_time: endTime.toISOString() //  Suppression de `title`
+            end_time: endTime.toISOString(),
+            appointment_type_id: appointmentTypeId //  Envoie l'ID numérique
         });
 
         const response = await axios.post('http://localhost:5000/appointments', {
             slot_id: selectedSlot.id,
             start_time: selectedSlot.start_time,
-            end_time: endTime.toISOString() // Envoi des données sans `title`
+            end_time: endTime.toISOString(),
+            appointment_type_id: appointmentTypeId  // Assure que c'est bien un nombre
         }, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
 
-        console.log("Réponse du serveur:", response.data);
+        console.log(" Réponse du serveur :", response.data);
 
         if (response.status === 201) {
             alert("Rendez-vous créé avec succès !");
@@ -201,7 +231,6 @@ const fetchSlots = async () => {
     }
 };
 
-
 // Fonction pour annuler un rendez-vous
 
 const handleCancelAppointment = async (appointmentId) => {
@@ -210,45 +239,24 @@ const handleCancelAppointment = async (appointmentId) => {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
 
-        console.log("✅ Rendez-vous annulé :", appointmentId);
+        console.log(" Rendez-vous annulé :", appointmentId);
 
-        // ✅ Mettre à jour le statut du rendez-vous dans l'interface
+        //  Mettre à jour le statut du rendez-vous dans l'interface
         setAppointments(prev => prev.map(app => 
             app.id === appointmentId ? { ...app, status: "cancelled" } : app
         ));
 
-        // ✅ Libérer le créneau dans `slots`
+        //  Libérer le créneau dans `slots`
         setSlots(prevSlots => [...prevSlots, { start_time: response.data.start_time, end_time: response.data.end_time }]);
 
-        fetchAppointments(); // ✅ Recharge les rendez-vous pour s’assurer que tout est bien mis à jour
-        fetchSlots(); // ✅ Recharge les créneaux disponibles
+        fetchAppointments(); // Recharge les rendez-vous pour s’assurer que tout est bien mis à jour
+        fetchSlots(); // Recharge les créneaux disponibles
 
     } catch (error) {
-        console.error("🚨 Erreur lors de l'annulation du rendez-vous :", error);
+        console.error(" Erreur lors de l'annulation du rendez-vous :", error);
         alert("Erreur lors de l'annulation du rendez-vous. Veuillez réessayer.");
     }
 };
-
-//const handleCancelAppointment = async (appointmentId) => {
- //   try {
- //       await axios.delete(`http://localhost:5000/appointments/${appointmentId}`, {
- //           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
- //       });
-//
- //       console.log(" Rendez-vous annulé :", appointmentId);
-//
- //       // Supprimer le rendez-vous du frontend
- //       setAppointments(prev => prev.filter(app => app.id !== appointmentId));
-//
- //       // Libérer le créneau en le réaffichant dans `currentSlots`
- //       fetchSlots(); // Recharge les créneaux disponibles
-//
- //   } catch (error) {
- //       console.error("🚨 Erreur lors de l'annulation du rendez-vous :", error);
- //       alert("Erreur lors de l'annulation du rendez-vous. Veuillez réessayer.");
- //   }
-//};
-
 
 
     // Fonction pour activer/désactiver les notifications
@@ -375,12 +383,12 @@ const handleCancelAppointment = async (appointmentId) => {
 
                  
                     <button 
-    className="load-more-button" 
-    onClick={fetchMoreSlots} 
-    disabled={currentSlots.length >= slots.length || isLoading}
->
-    {currentSlots.length >= slots.length ? "Tous les créneaux sont affichés" : isLoading ? "Chargement..." : "Plus de créneaux libres"}
-</button>
+                        className="load-more-button" 
+                        onClick={fetchMoreSlots} 
+                        disabled={currentSlots.length >= slots.length || isLoading}
+                    >
+                    {currentSlots.length >= slots.length ? "Tous les créneaux sont affichés" : isLoading ? "Chargement..." : "Plus de créneaux libres"}
+                    </button>
 
                 </div>
 
@@ -393,7 +401,7 @@ const handleCancelAppointment = async (appointmentId) => {
             <p>Heure: {new Date(apt.start_time).toLocaleTimeString()} - {new Date(apt.end_time).toLocaleTimeString()}</p>
 
             {apt.status === "cancelled" ? (
-                <p className="cancelled-message" style={{ color: "red", fontWeight: "bold" }}>🛑 Annulé par le patient</p>
+                <p className="cancelled-message" style={{ color: "red", fontWeight: "bold" }}> Annulé par le patient</p>
             ) : (
                 <button className="cancel-button" onClick={() => handleCancelAppointment(apt.id)}>
                     Annuler
@@ -431,11 +439,15 @@ const handleCancelAppointment = async (appointmentId) => {
                         <p>Date: {new Date(selectedSlot.start_time).toLocaleDateString('fr-FR')}</p>
                         <p>Heure: {new Date(selectedSlot.start_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
 
-                        <select onChange={(e) => setSelectedType(e.target.value)}>
-                             {appointmentTypes.map((type, index) => (
-                                <option key={index} value={type}>{type}</option>
-                            ))}
-                        </select>
+                        <select onChange={(e) => setSelectedType(Number(e.target.value))}>
+    <option value="" disabled>Choisissez un motif</option> {/* Option par défaut */}
+    {appointmentTypes.map((type) => (
+        <option key={type.id} value={type.id}> {/* Envoie l'ID et affiche le nom */}
+            {type.name}
+        </option>
+    ))}
+</select>
+
 
                         <div className="modal-buttons">
                             <button onClick={handleAppointmentSubmit}>Confirmer</button>
