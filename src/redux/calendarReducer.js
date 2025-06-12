@@ -16,6 +16,7 @@ export const fetchAppointments = createAsyncThunk("calendar/fetchAppointments", 
         });
 
         console.log("🔍 Réponse API côté Redux :", response.data);
+
         return response.data.appointments;
     } catch (error) {
         console.error("🚨 Erreur API Redux :", error);
@@ -66,51 +67,48 @@ const calendarSlice = createSlice({
                 state.status = "loading";
             })
             .addCase(fetchAppointments.fulfilled, (state, action) => {
-                console.log("🔍 Structure complète de la réponse API:", JSON.stringify(action.payload, null, 2));
-                console.log("📦 Premier rendez-vous exemple:", action.payload[0]);
+                    console.log("📦 Premier rendez-vous exemple:", action.payload[0]);
 
-                if (!Array.isArray(action.payload)) {
-                    console.error("❌ Erreur : La réponse API n'est pas un tableau");
-                    return;
-                }
-
-                state.events = action.payload.map(apt => {
-                    console.log("📌 Rendez-vous en cours de traitement:", {
-                        id: apt.id,
-                        title: apt.title,
-                        start: apt.start,
-                        end: apt.end,
-                        user_id: apt.user_id
-                    });
-
-                    if (!apt.start || !apt.end) {
-                        console.error("❌ Erreur : Dates manquantes pour le rendez-vous", apt);
-                        return null;
+                    if (!Array.isArray(action.payload)) {
+                        console.error("❌ Erreur : La réponse API n'est pas un tableau");
+                        return;
                     }
 
-                    const event = {
-                        id: apt.id.toString(),
-                        title: apt.title || "Rendez-vous sans titre",
-                        start: apt.start,
-                        end: apt.end,
-                        backgroundColor: '#4CAF50',
-                        borderColor: '#4CAF50',
-                        textColor: '#ffffff',
-                        extendedProps: {
-                            userId: apt.user_id
+                    state.events = action.payload.map(apt => {
+                        if (!apt.start || !apt.end) {
+                            console.error("❌ Erreur : Dates manquantes pour le rendez-vous", apt);
+                            return null;
                         }
-                    };
+                    
+                        const event = {
+                            id: apt.id.toString(),
+                            title: apt.title || "Rendez-vous sans titre",
+                            start: apt.start,
+                            end: apt.end,
+                            backgroundColor: '#4CAF50',
+                            borderColor: '#4CAF50',
+                            textColor: '#ffffff',
+                            extendedProps: {
+                                userId: apt.user_id
+                            }
+                        };
+                    
+                        console.log("✨ Événement créé:", event);
+                        return event;
+                    }).filter(event => event !== null);
+                
+                    //  Ajout du log ici, après la mise à jour de Redux
+                    console.log("✅ Redux mis à jour avec ces rendez-vous :", JSON.stringify(state.events, null, 2));
 
-                    console.log("✨ Événement créé:", event);
-                    return event;
-                }).filter(event => event !== null);
 
-                console.log("✅ Événements stockés dans Redux:", state.events);
             })
             .addCase(fetchAppointments.rejected, (state, action) => {
+                
                 state.status = "failed";
                 state.error = action.error.message;
+                
             });
+            
     },
 });
 

@@ -10,6 +10,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import frLocale from '@fullcalendar/core/locales/fr';
 import '../styles/AdminDashboard.css';
 import CalendarComponent from '../components/Calendar';
+import CalendarBis from "../components/CalendarBis";
 
 const AdminDashboard = () => {
     const [users, setUsers] = useState([]);
@@ -17,7 +18,8 @@ const AdminDashboard = () => {
     const [selectedUser, setSelectedUser] = useState(null);
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const events = useSelector((state) => state.calendar.events);
+    const reduxEvents = useSelector((state) => state.calendar.events);
+    console.log("📅 Événements dans AdminDashboard:", reduxEvents);
 
     const fetchUsers = async () => {
         try {
@@ -92,7 +94,7 @@ const AdminDashboard = () => {
                 <div className="calendar-section">
                     <h2>Calendrier des rendez-vous</h2>
                     <div style={{ height: '800px', width: '100%' }}>
-                        <CalendarComponent />
+                        <CalendarBis events={reduxEvents} />
                     </div>
                 </div>
 

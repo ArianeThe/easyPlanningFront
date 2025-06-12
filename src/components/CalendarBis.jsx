@@ -1,57 +1,28 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import axios from "axios";
-import { fetchAppointments, setEvents } from "../redux/calendarReducer";
+import { fetchAppointments } from "../redux/calendarReducer";
 import frLocale from '@fullcalendar/core/locales/fr';
-import "../styles/Calendar.css";  // Import du style pour le calendrier
 
-console.log("🚀 `Calendar.jsx` chargé !");
-
-const Calendar = ({ events }) => {
-
+/**
+ * Version simplifiée du composant Calendar pour comprendre la logique
+ * Ce composant n'est pas destiné à être utilisé en production
+ * Il sert uniquement à comprendre le fonctionnement de FullCalendar
+ */
+const CalendarBis = () => {
     const dispatch = useDispatch();
-    //const reduxEvents = useSelector((state) => state.calendar.events);
     const userRole = useSelector((state) => state.user.role);
     const userId = useSelector((state) => state.user.userInfo?.id);
-
-
-    // Nouveau code avec logs détaillés
-    console.log("📅 Événements bruts de Redux:", events);
-    
-
-   const eventsTransformed = events?.map(event => ({ 
-    id: event.id.toString(),
-    title: event.title,
-    start: new Date(event.start),  
-    end: new Date(event.end),  
-    allDay: false,
-    display: 'block',
-    resourceId: event.id  // Ajoute une clé unique
-})).filter(event => event !== null);
-
-
-
-
-    const [calendarKey, setCalendarKey] = useState(0);
-    const [updated, setUpdated] = useState(false);
+    const appointments = useSelector((state) => state.calendar.appointments);
 
     useEffect(() => {
-        if (!updated && eventsTransformed?.length > 0) {
-            setCalendarKey(prevKey => prevKey + 1);
-            setUpdated(true); // ✅ Empêcher une mise à jour infinie
-        }
-    }, [eventsTransformed]);
-
-    
-
-    useEffect(() => {
+        console.log("📅 Rendez-vous dans Redux:", appointments);
         dispatch(fetchAppointments());
     }, [dispatch]);
-
 
     const handleSelect = async (info) => {
         if (userRole !== "admin") {
@@ -73,19 +44,28 @@ const Calendar = ({ events }) => {
         }
     };
 
-    //console.log("📆 Événements reçus dans `Calendar.jsx` après passage par AdminDashboard :", events);
-    //console.log("🛠 Format final des événements avant envoi à FullCalendar :", JSON.stringify(eventsTransformed, null, 2));
-   //console.log("📆 Structure FullCalendar avant rendu :", document.querySelector(".fc-timegrid-slots"));
-   //console.log("🛠 Structure des événements avant passage à FullCalendar :", eventsTransformed);
+    // Transformation directe des événements
+    const transformedEvents = Array.isArray(appointments) ? appointments.map(event => {
+        console.log("🔄 Transformation de l'événement:", event);
+        return {
+            id: event.id.toString(),
+            title: event.title,
+            start: event.start,
+            end: event.end,
+            backgroundColor: '#4CAF50',
+            borderColor: '#4CAF50',
+            textColor: '#ffffff',
+            extendedProps: {
+                userId: event.user_id
+            }
+        };
+    }) : [];
 
-
-
-
+    console.log("✨ Événements transformés:", transformedEvents);
 
     return (
         <div className="calendar-container" style={{ height: '800px', padding: '20px' }}>
             <FullCalendar
-                key={calendarKey}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                 initialView="timeGridWeek"
                 headerToolbar={{
@@ -94,7 +74,7 @@ const Calendar = ({ events }) => {
                     right: 'dayGridMonth,timeGridWeek,timeGridDay'
                 }}
                 locale={frLocale}
-                events={eventsTransformed}
+                events={transformedEvents}
                 selectable={true}
                 select={handleSelect}
                 height="100%"
@@ -103,7 +83,6 @@ const Calendar = ({ events }) => {
                 allDaySlot={false}
                 slotDuration="00:45:00"
                 eventClick={(info) => {
-                    console.log("🎯 Événement cliqué:", info.event);
                     if (info.event.extendedProps?.userId) {
                         window.location.href = `/admin/user/${info.event.extendedProps.userId}`;
                     }
@@ -142,26 +121,28 @@ const Calendar = ({ events }) => {
                 slotLabelFormat={{
                     hour: '2-digit',
                     minute: '2-digit',
-                   hour12: false
+                    hour12: false
                 }}
                 eventDidMount={(info) => {
-                 console.log("🛠 Test affichage manuel :", info.event);
-                    info.el.innerHTML += "<div style='color: white; font-size: 12px;'>✅ Test</div>";
+                    console.log("🎯 Événement monté:", info.event);
+                    info.el.style.backgroundColor = '#4CAF50';
+                    info.el.style.borderColor = '#4CAF50';
+                    info.el.style.color = '#ffffff';
+                    info.el.style.padding = '5px';
+                    info.el.style.borderRadius = '4px';
                 }}
-
-
+                eventContent={(info) => ({
+                    html: `
+                        <div style="padding: 5px;">
+                            <strong>${info.event.title}</strong>
+                            <br/>
+                            ${info.timeText}
+                        </div>
+                    `
+                })}
             />
         </div>
     );
 };
 
-
-//setTimeout(() => {
-//    console.log("🛠 Vérification des événements affichés :", document.querySelectorAll(".fc-event"));
-//}, 500);
-
-setTimeout(() => {
-    console.log("📆 Événements transmis à FullCalendar après affichage :", document.querySelector(".fc-event"));
-}, 500);
-
-export default Calendar;
+export default CalendarBis; 
