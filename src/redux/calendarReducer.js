@@ -1,17 +1,46 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
+
+
 export const fetchAppointments = createAsyncThunk("calendar/fetchAppointments", async () => {
+    const token = localStorage.getItem("token");
+    console.log("🔐 Token utilisé :", token); // ✅ Vérification du token
+
     try {
-        const response = await axios.get("http://localhost:5000/appointments", {
-            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        const response = await axios.get("http://localhost:5000/admin/appointments", {
+            headers: { 
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json"
+            }
         });
-        return response.data;
+
+        console.log("🔍 Réponse API côté Redux :", response.data);
+        return response.data.appointments;
     } catch (error) {
-        console.error("Erreur lors de la récupération des rendez-vous :", error);
+        console.error("🚨 Erreur API Redux :", error);
         throw error;
     }
 });
+
+
+
+
+//export const fetchAppointments = createAsyncThunk("calendar/fetchAppointments", async () => {
+//    console.log("🚀 `fetchAppointments()` lancé depuis Redux !");
+//
+//    try {
+//        const response = await axios.get("http://localhost:5000/appointments", {
+//            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+//        });
+//
+//                console.log("🔍 Réponse API côté Redux :", response.data); // ✅ Voir les données reçues
+//        return response.data;
+//    } catch (error) {
+//        console.error("Erreur lors de la récupération des rendez-vous :", error);
+//        throw error;
+//    }
+//});
 
 const initialState = {
     events: [],
@@ -37,14 +66,46 @@ const calendarSlice = createSlice({
                 state.status = "loading";
             })
             .addCase(fetchAppointments.fulfilled, (state, action) => {
-                state.status = "succeeded";
-                state.events = action.payload.map(apt => ({
-                    id: apt.id.toString(), // ✅ Convertir ID en string pour éviter les erreurs
-                    title: apt.title,
-                    start: new Date(apt.start_time).toISOString(), // ✅ Format ISO 8601
-                    end: new Date(apt.end_time).toISOString()
-        }));
-                    console.log("✅ Événements stockés dans le reducer :", state.events);
+                console.log("🔍 Structure complète de la réponse API:", JSON.stringify(action.payload, null, 2));
+                console.log("📦 Premier rendez-vous exemple:", action.payload[0]);
+
+                if (!Array.isArray(action.payload)) {
+                    console.error("❌ Erreur : La réponse API n'est pas un tableau");
+                    return;
+                }
+
+                state.events = action.payload.map(apt => {
+                    console.log("📌 Rendez-vous en cours de traitement:", {
+                        id: apt.id,
+                        title: apt.title,
+                        start: apt.start,
+                        end: apt.end,
+                        user_id: apt.user_id
+                    });
+
+                    if (!apt.start || !apt.end) {
+                        console.error("❌ Erreur : Dates manquantes pour le rendez-vous", apt);
+                        return null;
+                    }
+
+                    const event = {
+                        id: apt.id.toString(),
+                        title: apt.title || "Rendez-vous sans titre",
+                        start: apt.start,
+                        end: apt.end,
+                        backgroundColor: '#4CAF50',
+                        borderColor: '#4CAF50',
+                        textColor: '#ffffff',
+                        extendedProps: {
+                            userId: apt.user_id
+                        }
+                    };
+
+                    console.log("✨ Événement créé:", event);
+                    return event;
+                }).filter(event => event !== null);
+
+                console.log("✅ Événements stockés dans Redux:", state.events);
             })
             .addCase(fetchAppointments.rejected, (state, action) => {
                 state.status = "failed";

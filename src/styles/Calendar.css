@@ -1,0 +1,13 @@
+.calendar-container {
+    display: block !important;
+    background-color: lightblue !important;
+    border: 2px solid red !important;
+    min-height: 600px !important;
+    width: 100% !important;
+}
+
+.fc {
+    display: block !important;
+    min-height: 500px !important;
+    border: 3px solid blue !important;
+}

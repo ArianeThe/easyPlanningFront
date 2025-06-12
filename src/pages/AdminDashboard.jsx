@@ -12,35 +12,12 @@ import '../styles/AdminDashboard.css';
 import CalendarComponent from '../components/Calendar';
 
 const AdminDashboard = () => {
-    // const [appointments, setAppointments] = useState([]);  // Commenté car géré par Redux
     const [users, setUsers] = useState([]);
     const [showUserModal, setShowUserModal] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const events = useSelector((state) => state.calendar.events);  // Utilisation des événements depuis Redux
-
-    // Ancien fetchAppointments commenté car maintenant géré par le calendarReducer
-    /*
-    const fetchAppointments = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:5000/admin/appointments', {
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            console.log("Rendez-vous reçus:", response.data);
-            setAppointments(response.data.appointments || []);
-        } catch (error) {
-            console.error('Erreur lors de la récupération des rendez-vous:', error);
-            if (error.response?.status === 401) {
-                navigate('/login');
-            }
-        }
-    };
-    */
+    const events = useSelector((state) => state.calendar.events);
 
     const fetchUsers = async () => {
         try {
@@ -67,7 +44,6 @@ const AdminDashboard = () => {
             navigate('/login');
             return;
         }
-        // fetchAppointments();  // Commenté car géré par le calendarReducer
         fetchUsers();
     }, [navigate]);
 
@@ -102,18 +78,8 @@ const AdminDashboard = () => {
         }
     };
 
-    // Ancien code de transformation des rendez-vous en événements
-    /*
-    const events = appointments.map((apt) => ({
-        id: `apt-${apt.id}`,
-        title: `${apt.title} - ${apt.user}`, 
-        start: new Date(apt.start).toISOString(),
-        end: new Date(apt.end).toISOString(),
-        backgroundColor: '#4CAF50',
-        borderColor: '#4CAF50',
-        extendedProps: { userId: apt.user_id }
-    }));
-    */
+    console.log("🚀 AdminDashboard monté !");
+    console.log("🚀 `AdminDashboard.jsx` tente de rendre `Calendar.jsx`");
 
     return (
         <div className="admin-dashboard">
@@ -125,27 +91,9 @@ const AdminDashboard = () => {
             <div className="dashboard-content">
                 <div className="calendar-section">
                     <h2>Calendrier des rendez-vous</h2>
-                    {/* Ancien calendrier commenté
-                    <Calendar
-                        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                        initialView="timeGridWeek"
-                        headerToolbar={{
-                            left: 'prev,next today',
-                            center: 'title',
-                            right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                        }}
-                        locale={frLocale}
-                        events={events}
-                        eventClick={handleEventClick}
-                        height="auto"
-                        slotMinTime="09:45:00"
-                        slotMaxTime="20:00:00"
-                        allDaySlot={false}
-                        slotDuration="00:45:00"
-                    />
-                    */}
-                    {/* Nouveau composant Calendar */}
-                    <CalendarComponent />
+                    <div style={{ height: '800px', width: '100%' }}>
+                        <CalendarComponent />
+                    </div>
                 </div>
 
                 <div className="users-section">
